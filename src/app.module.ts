@@ -1,10 +1,22 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
+import { AuthModule } from './auth/auth.module';
+import { AuthMiddleware, FirebaseApp, LoggerMiddleware } from './middleware';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [AuthModule],
+  providers: [FirebaseApp],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+    consumer.apply(AuthMiddleware).exclude('auth/(.*)').forRoutes({
+      path: '*',
+      method: RequestMethod.ALL,
+    });
+  }
+}

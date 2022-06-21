@@ -1,13 +1,16 @@
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
   ExpressAdapter,
   NestExpressApplication,
 } from '@nestjs/platform-express';
 import * as express from 'express';
-import { AppModule } from './app.module';
 import * as functions from 'firebase-functions';
+import { AppModule } from './app.module';
+import { TransformInterceptor } from './middleware';
 
 const server = express();
+const logger = new Logger('Server');
 
 export const createNestServer = async (expreessInstance: express.Express) => {
   const adapter = new ExpressAdapter(expreessInstance);
@@ -18,11 +21,14 @@ export const createNestServer = async (expreessInstance: express.Express) => {
   );
 
   app.enableCors();
+  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalInterceptors(new TransformInterceptor());
+
   return app.init();
 };
 
 createNestServer(server)
-  .then(() => console.log('Nest Ready'))
-  .catch((err) => console.error('Nest Failed', err));
+  .then(() => logger.log('Nest Server Ready'))
+  .catch((err) => logger.error('Nest Failed', err));
 
 export const api = functions.https.onRequest(server);
